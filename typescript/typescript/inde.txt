@@ -1,0 +1,284 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.addMessage = exports.getUserData = exports.cancelCreditCard = exports.captureCreditCard = exports.authorizeCreditCard = void 0;
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const cielo_1 = require("cielo");
+const cielo_2 = require("cielo");
+admin.initializeApp(functions.config().firebase);
+// Start writing Firebase Functions
+// https://firebase.google.com/docs/functions/typescript
+const merchantId = functions.config().cielo.merchantid;
+const merchantKey = functions.config().cielo.merchantkey;
+// sandbox: true, -> Opcional - Ambiente de Testes
+// debug: true -> Opcional - Exibe os dados enviados na requisição para a Cielo
+const cieloParams = {
+    merchantId: merchantId,
+    merchantKey: merchantKey,
+    sandbox: true,
+    debug: true,
+};
+const cielo = new cielo_1.Cielo(cieloParams);
+exports.authorizeCreditCard = functions.https
+    .onCall(async (data, context) => {
+    if (data == null) {
+        return {
+            "success": false,
+            "error": {
+                "code": -1,
+                "message": "Dados não informados",
+            },
+        };
+    }
+    if (!context.auth) {
+        return {
+            "success": false,
+            "error": {
+                "code": -1,
+                "message": "Nenhum usuário logado",
+            },
+        };
+    }
+    console.log("Iniciando Autorização");
+    let brandEncontrada;
+    switch (data.creditCard.brand) {
+        case "VISA":
+            brandEncontrada = cielo_2.EnumBrands.VISA;
+            break;
+        case "MASTERCARD":
+            brandEncontrada = cielo_2.EnumBrands.MASTER;
+            break;
+        case "AMEX":
+            brandEncontrada = cielo_2.EnumBrands.AMEX;
+            break;
+        case "ELO":
+            brandEncontrada = cielo_2.EnumBrands.ELO;
+            break;
+        case "AURA":
+            brandEncontrada = cielo_2.EnumBrands.AURA;
+            break;
+        case "JCB":
+            brandEncontrada = cielo_2.EnumBrands.JCB;
+            break;
+        case "DINERSCLUB":
+            brandEncontrada = cielo_2.EnumBrands.DINERS;
+            break;
+        case "DISCOVER":
+            brandEncontrada = cielo_2.EnumBrands.DISCOVERY;
+            break;
+        case "HIPERCARD":
+            brandEncontrada = cielo_2.EnumBrands.HIPERCARD;
+            break;
+        default:
+            return {
+                "success": false,
+                "error": {
+                    "code": -1,
+                    "message": "Cartão não suportado: " + data.creditCard.brand,
+                },
+            };
+    }
+    const saleData = {
+        merchantOrderId: data.merchantOrderId.substring(0, 49),
+        customer: {
+            name: data.nomeUsuario.substring(0, 254),
+        },
+        payment: {
+            currency: "BRL",
+            country: "BRA",
+            amount: data.amount,
+            creditCard: {
+                brand: brandEncontrada,
+                cardNumber: data.creditCard.cardNumber,
+                holder: data.creditCard.holder.substring(0, 24),
+                expirationDate: data.creditCard.expirationDate,
+                securityCode: data.creditCard.securityCode,
+            },
+            installments: data.installments,
+            softDescriptor: data.softDescriptor.substring(0, 12),
+            type: data.paymentType,
+            capture: false,
+        },
+    };
+    try {
+        const transaction = await cielo.creditCard.transaction(saleData);
+        if (transaction.payment.status === 1) {
+            return {
+                "success": true,
+                "paymentId": transaction.payment.paymentId,
+            };
+        }
+        else {
+            let message = "";
+            switch (transaction.payment.returnCode) {
+                case "5":
+                    message = "Não Autorizada";
+                    break;
+                case "57":
+                    message = "Cartão Expirado";
+                    break;
+                case "78":
+                    message = "Cartão Bloqueado";
+                    break;
+                case "99":
+                    message = "Tempo Expirado";
+                    break;
+                case "77":
+                    message = "Cartão Cancelado";
+                    break;
+                case "70":
+                    message = "Problemas Com Cartão de Crédito";
+                    break;
+                default:
+                    message = transaction.payment.returnMessage;
+                    break;
+            }
+            return {
+                "success": false,
+                "status": transaction.payment.status,
+                "error": {
+                    "code": transaction.payment.returnCode,
+                    "message": message,
+                },
+            };
+        }
+    }
+    catch (error) {
+        console.log("Erro Capturado: ", error);
+        return {
+            "success": false,
+            "error": {
+                "code": error.response[0].Code,
+                "message": error.response[0].Message,
+            },
+        };
+    }
+});
+exports.captureCreditCard = functions.https
+    .onCall(async (data, context) => {
+    if (data == null) {
+        return {
+            "success": false,
+            "error": {
+                "code": -1,
+                "message": "Dados não informados",
+            },
+        };
+    }
+    if (!context.auth) {
+        return {
+            "success": false,
+            "error": {
+                "code": -1,
+                "message": "Nenhum usuário logado",
+            },
+        };
+    }
+    console.log("Iniciando Captura");
+    const captureParams = {
+        paymentId: data.payId,
+    };
+    try {
+        const capture = await cielo.creditCard
+            .captureSaleTransaction(captureParams);
+        if (capture.status === 2) {
+            return {
+                "success": true,
+            };
+        }
+        else {
+            return {
+                "success": false,
+                "status": capture.status,
+                "error": {
+                    "code": capture.returnCode,
+                    "message": capture.returnMessage,
+                },
+            };
+        }
+    }
+    catch (error) {
+        console.log("Erro Capturado: ", error);
+        return {
+            "success": false,
+            "error": {
+                "code": error.response[0].Code,
+                "message": error.response[0].Message,
+            },
+        };
+    }
+});
+exports.cancelCreditCard = functions.https
+    .onCall(async (data, context) => {
+    if (data == null) {
+        return {
+            "success": false,
+            "error": {
+                "code": -1,
+                "message": "Dados não informados",
+            },
+        };
+    }
+    if (!context.auth) {
+        return {
+            "success": false,
+            "error": {
+                "code": -1,
+                "message": "Nenhum usuário logado",
+            },
+        };
+    }
+    console.log("Iniciando Captura");
+    const cancelParams = {
+        paymentId: data.payId,
+    };
+    try {
+        const cancel = await cielo.creditCard
+            .cancelTransaction(cancelParams);
+        if (cancel.status === 10 || cancel.status === 11) {
+            return {
+                "success": true,
+            };
+        }
+        else {
+            return {
+                "success": false,
+                "status": cancel.status,
+                "error": {
+                    "code": cancel.returnCode,
+                    "message": cancel.returnMessage,
+                },
+            };
+        }
+    }
+    catch (error) {
+        console.log("Erro Capturado: ", error);
+        return {
+            "success": false,
+            "error": {
+                "code": error.response[0].Code,
+                "message": error.response[0].Message,
+            },
+        };
+    }
+});
+exports.getUserData = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        return {
+            "data": "Nenhum usuário logado",
+        };
+    }
+    const snapshot = await admin.firestore()
+        .collection("users")
+        .doc(context.auth.uid)
+        .get();
+    return {
+        "data": snapshot.data(),
+    };
+});
+exports.addMessage = functions.https.onCall(async (data, context) => {
+    console.log(data);
+    const snapshot = await admin.firestore().collection("users").add(data);
+    return { "success": snapshot.id };
+});
+//# sourceMappingURL=index.js.map
