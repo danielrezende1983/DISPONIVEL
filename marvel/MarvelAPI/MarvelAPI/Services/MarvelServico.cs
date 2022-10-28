@@ -1,6 +1,7 @@
 ﻿using MarvelAPI.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
 namespace MarvelAPI.Services
@@ -64,11 +65,38 @@ namespace MarvelAPI.Services
                         listaPersonagens.Add(personagem);
                     }
 
+                    listaPersonagens.Sort((x, y) => x.Nome.CompareTo(y.Nome));
                     return listaPersonagens;
                 }
 
             }
             catch(Exception)
+            {
+                throw;
+            }
+
+        }
+
+        public IEnumerable<Personagem> GetPersonagemPorId(long id)
+        {
+            try
+            {
+                return GetPersonagens().Where(p => p.Id == id);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+        }
+
+        public IEnumerable<Personagem> GetPersonagemPorNome(string nome)
+        {
+            try
+            {
+                return GetPersonagens().Where(p => p.Nome == nome);
+            }
+            catch (Exception)
             {
                 throw;
             }

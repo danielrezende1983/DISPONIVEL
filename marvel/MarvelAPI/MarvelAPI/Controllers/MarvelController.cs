@@ -18,36 +18,23 @@ namespace MarvelAPI.Controllers
             _marvelServico = new MarvelServico();
         }
 
-        // GET: api/<MarvelController>
         [HttpGet]
         public IEnumerable<Personagem> Get()
         {
             return _marvelServico.GetPersonagens();
         }
 
-        // GET api/<MarvelController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        [HttpGet("getPersonagemPorId/{id}")]
+        public IEnumerable<Personagem> Get(long id)
         {
-            return "value";
+            return _marvelServico.GetPersonagemPorId(id);
         }
 
-        //// POST api/<MarvelController>
-        //[HttpPost]
-        //public void Post([FromBody] string value)
-        //{
-        //}
+        [HttpGet("getPersonagemPorNome/{nome}")]
+        public IEnumerable<Personagem> Get(string nome)
+        {
+            return _marvelServico.GetPersonagemPorNome(nome);
+        }
 
-        //// PUT api/<MarvelController>/5
-        //[HttpPut("{id}")]
-        //public void Put(int id, [FromBody] string value)
-        //{
-        //}
-
-        //// DELETE api/<MarvelController>/5
-        //[HttpDelete("{id}")]
-        //public void Delete(int id)
-        //{
-        //}
     }
 }
