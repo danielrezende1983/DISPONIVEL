@@ -1,0 +1,5 @@
+- Projeto criado no framework 6 utilizando swagger;
+- Criei um serviço para consumir a API da marvel que retorna uma lista do objeto personagem;
+- Criei um controler da marvel, nele possui retorno de todos os personagens, ou pode buscar por id ou nome;
+- Criei um banco de dados para armazenar os favoritos selecionados;
+- Criei um controler para gerenciar os favoritos, adicionando, removendo e consultando.
