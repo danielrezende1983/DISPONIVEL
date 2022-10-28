@@ -31,10 +31,17 @@ namespace MarvelAPI.Controllers
             return _repositorio.GetPorId(id);
         }
 
-        [HttpGet("{nome}/getPorNome")]
+        [HttpGet("{nome}/getPorNome")]        
         public IEnumerable<Favorito> Get(string nome)
         {
             return _repositorio.GetPorNome(nome);
+        }
+
+        [HttpGet()]
+        [Route("getValidacao/")]
+        public IEnumerable<string> GetValidacao()
+        {
+            return _validacao.validar();
         }
 
         [HttpPost]
