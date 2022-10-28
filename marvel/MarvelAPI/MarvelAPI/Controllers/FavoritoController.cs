@@ -41,13 +41,13 @@ namespace MarvelAPI.Controllers
         [Route("getValidacao/")]
         public IEnumerable<string> GetValidacao()
         {
-            return _validacao.validar();
+            return _validacao.Validar();
         }
 
         [HttpPost]
         public void Post([FromBody] Favorito favorito)
         {
-            if(_validacao.validar().Count == 0)
+            if(_validacao.Validar().Count == 0)
             {
                 _repositorio.Insert(favorito);
             }            

@@ -6,7 +6,7 @@ namespace MarvelAPI.Validacao
     public class FavoritoValidacao
     {
 
-        public List<string> validar()
+        public List<string> Validar()
         {
             List<string> listaInconsistencias = new List<string>();
             FavoritoRepositorio repositorio = new FavoritoRepositorio();
